@@ -151,13 +151,13 @@ function App() {
       try {
         // First delete their stats and tasks to avoid "record in use" errors
         const [stats, tasks] = await Promise.all([
-           pb.collection('user_stats').getFullList({ filter: `user = "${userId}"` }),
-           pb.collection('tasks').getFullList({ filter: `user = "${userId}"` })
+          pb.collection('user_stats').getFullList({ filter: `user = "${userId}"` }),
+          pb.collection('tasks').getFullList({ filter: `user = "${userId}"` })
         ]);
 
         await Promise.all([
-           ...stats.map(s => pb.collection('user_stats').delete(s.id)),
-           ...tasks.map(t => pb.collection('tasks').delete(t.id))
+          ...stats.map(s => pb.collection('user_stats').delete(s.id)),
+          ...tasks.map(t => pb.collection('tasks').delete(t.id))
         ]);
 
         // Now delete the user
@@ -192,7 +192,7 @@ function App() {
     if (isBanning && !window.confirm(`Are you sure you want to BAN ${user.name || 'this user'}? They will be blocked from the app.`)) {
       return;
     }
-    
+
     setLoading(true)
     try {
       await pb.collection('users').update(user.id, {
@@ -265,7 +265,7 @@ function App() {
                 value={authData.email}
                 onChange={(e) => setAuthData({ ...authData, email: e.target.value })}
                 className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-100 transition-all font-medium focus:bg-white"
-                placeholder="acadease_admin@cca.edu.ph"
+                placeholder="email"
                 required
               />
             </div>
@@ -379,7 +379,7 @@ function App() {
                     <Trophy className="text-yellow-500" /> Top Performing Students
                   </h3>
                   <div className="space-y-6">
-                    {[...users].sort((a,b) => (b.xp || 0) - (a.xp || 0)).slice(0, 5).map((user, i) => (
+                    {[...users].sort((a, b) => (b.xp || 0) - (a.xp || 0)).slice(0, 5).map((user, i) => (
                       <div key={user.id} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-3xl border border-slate-50 hover:bg-white hover:border-blue-200 transition-all group">
                         <div className="flex items-center gap-4">
                           <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black ${i === 0 ? 'bg-yellow-100 text-yellow-600' : 'bg-white text-slate-400 border border-slate-100'}`}>
@@ -493,11 +493,11 @@ function App() {
                           <td className="px-10 py-6 text-slate-400 text-sm font-medium">
                             <div className="flex flex-col gap-1">
                               {user.banned ? (
-                                  <span className="px-3 py-1 bg-black text-white rounded-full text-[10px] font-black uppercase text-center">Banned</span>
+                                <span className="px-3 py-1 bg-black text-white rounded-full text-[10px] font-black uppercase text-center">Banned</span>
                               ) : user.needs_approval ? (
-                                  <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-[10px] font-black uppercase text-center">Pending</span>
+                                <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-[10px] font-black uppercase text-center">Pending</span>
                               ) : (
-                                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-black uppercase text-center">Approved</span>
+                                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-black uppercase text-center">Approved</span>
                               )}
                             </div>
                           </td>
@@ -508,27 +508,27 @@ function App() {
                             </div>
                           </td>
                           <td className="px-10 py-6 text-slate-400 text-sm font-medium">{new Date(user.created).toLocaleDateString()}</td>
-                           <td className="px-10 py-6 text-right">
-                             <div className="flex items-center justify-end gap-2">
-                               {user.needs_approval && (
-                                  <button onClick={() => handleApproveUser(user)} className="flex items-center gap-2 px-4 py-2 text-green-700 bg-green-50 hover:bg-green-600 hover:text-white rounded-xl transition-all border border-green-100 font-bold text-xs" title="Approve Student">
-                                    <Check size={16} /> Approve
-                                  </button>
-                               )}
-                               <button onClick={() => handleToggleBanUser(user)} className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-bold text-xs border ${user.banned ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200'}`} title={user.banned ? "Unban User" : "Ban User"}>
-                                 <Shield size={16} /> {user.banned ? 'Unban' : 'Ban'}
-                               </button>
-                               <button onClick={() => viewUserDetails(user)} className="p-2.5 text-blue-600 bg-blue-50 hover:bg-[#033867] hover:text-white rounded-xl transition-all border border-blue-100" title="View Progress">
-                                 <Eye size={18} />
-                               </button>
-                               <button onClick={() => openEditModal(user)} className="p-2.5 text-slate-600 bg-slate-50 hover:bg-slate-800 hover:text-white rounded-xl transition-all border border-slate-100" title="Edit Profile">
-                                 <Edit2 size={18} />
-                               </button>
-                               <button onClick={() => handleDeleteUser(user.id)} className="p-2.5 text-red-600 bg-red-50 hover:bg-red-600 hover:text-white rounded-xl transition-all border border-red-100" title="Delete Account">
-                                 <Trash2 size={18} />
-                               </button>
-                             </div>
-                           </td>
+                          <td className="px-10 py-6 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {user.needs_approval && (
+                                <button onClick={() => handleApproveUser(user)} className="flex items-center gap-2 px-4 py-2 text-green-700 bg-green-50 hover:bg-green-600 hover:text-white rounded-xl transition-all border border-green-100 font-bold text-xs" title="Approve Student">
+                                  <Check size={16} /> Approve
+                                </button>
+                              )}
+                              <button onClick={() => handleToggleBanUser(user)} className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-bold text-xs border ${user.banned ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200'}`} title={user.banned ? "Unban User" : "Ban User"}>
+                                <Shield size={16} /> {user.banned ? 'Unban' : 'Ban'}
+                              </button>
+                              <button onClick={() => viewUserDetails(user)} className="p-2.5 text-blue-600 bg-blue-50 hover:bg-[#033867] hover:text-white rounded-xl transition-all border border-blue-100" title="View Progress">
+                                <Eye size={18} />
+                              </button>
+                              <button onClick={() => openEditModal(user)} className="p-2.5 text-slate-600 bg-slate-50 hover:bg-slate-800 hover:text-white rounded-xl transition-all border border-slate-100" title="Edit Profile">
+                                <Edit2 size={18} />
+                              </button>
+                              <button onClick={() => handleDeleteUser(user.id)} className="p-2.5 text-red-600 bg-red-50 hover:bg-red-600 hover:text-white rounded-xl transition-all border border-red-100" title="Delete Account">
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       ))
                     )}
@@ -543,7 +543,7 @@ function App() {
               <h2 className="text-2xl font-black text-[#033867] mb-8 flex items-center gap-3">
                 <Settings className="text-blue-600" /> System Configuration
               </h2>
-              
+
               <div className="space-y-6">
                 <div className="flex items-center justify-between p-6 bg-slate-50 rounded-3xl border border-slate-100">
                   <div>
