@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, Users, Settings, LogOut, Search, MoreVertical, Shield, UserPlus, Mail, Key, Bell, ClipboardList, TrendingUp, Edit2, Trash2, Eye, Plus, X, ListCheck, Trophy, Check, UserMinus } from 'lucide-react'
+import { LayoutDashboard, Users, Settings, LogOut, Search, MoreVertical, Shield, UserPlus, Mail, Key, Bell, ClipboardList, TrendingUp, Edit2, Trash2, Eye, Plus, X, ListCheck, Trophy, Check, UserMinus, Clock, AlertTriangle } from 'lucide-react'
 import pb from './lib/pocketbase'
 
 // Specific Admin Check for safety
@@ -22,6 +22,7 @@ function App() {
   const [isEditMode, setIsEditMode] = useState(false)
   const [selectedUser, setSelectedUser] = useState(null)
   const [isDetailView, setIsDetailView] = useState(false)
+  const [isRestrictModalOpen, setIsRestrictModalOpen] = useState(false)
 
   // User Form State
   const [userForm, setUserForm] = useState({
@@ -29,6 +30,11 @@ function App() {
     email: '',
     password: '',
     passwordConfirm: ''
+  })
+
+  const [restrictionForm, setRestrictionForm] = useState({
+    reason: '',
+    duration: '24', // Default 24 hours
   })
 
   // Student Details State
@@ -132,12 +138,21 @@ function App() {
     e.preventDefault()
     setLoading(true)
     try {
-      await pb.collection('users').update(selectedUser.id, {
+      const updateData = {
         name: userForm.name,
         email: userForm.email
-      })
+      }
+
+      // Add password update if provided
+      if (userForm.password) {
+        updateData.password = userForm.password
+        updateData.passwordConfirm = userForm.password
+      }
+
+      await pb.collection('users').update(selectedUser.id, updateData)
       setIsModalOpen(false)
       fetchUsers()
+      alert('Student record updated successfully!')
     } catch (err) {
       alert('Error updating user: ' + err.message)
     } finally {
@@ -183,27 +198,58 @@ function App() {
     } catch (err) {
       alert('Error approving user: ' + err.message)
     } finally {
-      setLoading(true)
+      setLoading(false)
     }
   }
 
   const handleToggleBanUser = async (user) => {
-    const isBanning = !user.banned;
-    if (isBanning && !window.confirm(`Are you sure you want to BAN ${user.name || 'this user'}? They will be blocked from the app.`)) {
-      return;
-    }
+    if (user.banned) {
+      // Unrestrict logic
+      if (!window.confirm(`Lift all restrictions for ${user.name || 'this user'}?`)) return;
 
+      setLoading(true)
+      try {
+        await pb.collection('users').update(user.id, {
+          banned: false,
+          restriction_note: '',
+          restriction_end: null
+        })
+        fetchUsers()
+        alert('Restrictions lifted successfully!')
+      } catch (err) {
+        alert('Error: ' + err.message)
+      } finally {
+        setLoading(false)
+      }
+    } else {
+      // Open restriction modal
+      setSelectedUser(user)
+      setRestrictionForm({ reason: '', duration: '24' })
+      setIsRestrictModalOpen(true)
+    }
+  }
+
+  const handleConfirmRestrict = async (e) => {
+    e.preventDefault()
     setLoading(true)
     try {
-      await pb.collection('users').update(user.id, {
-        banned: isBanning
+      const hours = parseInt(restrictionForm.duration)
+      const endDate = new Date()
+      endDate.setHours(endDate.getHours() + hours)
+
+      await pb.collection('users').update(selectedUser.id, {
+        banned: true,
+        restriction_note: restrictionForm.reason,
+        restriction_end: endDate.toISOString()
       })
+
+      setIsRestrictModalOpen(false)
       fetchUsers()
-      alert(`${user.name || 'User'} has been ${isBanning ? 'BANNED' : 'UNBANNED'} successfully!`)
+      alert(`${selectedUser.name || 'User'} has been RESTRICTED for ${hours} hours.`)
     } catch (err) {
-      alert('Error toggling ban: ' + err.message)
+      alert('Error: ' + err.message)
     } finally {
-      setLoading(true)
+      setLoading(false)
     }
   }
 
@@ -254,7 +300,7 @@ function App() {
               <Shield size={40} className="drop-shadow-lg" />
             </div>
             <h2 className="text-3xl font-black text-[#033867]">AcadEase Admin</h2>
-            <p className="text-slate-400 font-medium mt-1">Official Master Administrator Only</p>
+            <p className="text-slate-400 font-medium mt-1">Administrator Only</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
@@ -265,7 +311,7 @@ function App() {
                 value={authData.email}
                 onChange={(e) => setAuthData({ ...authData, email: e.target.value })}
                 className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-100 transition-all font-medium focus:bg-white"
-                placeholder="email"
+                placeholder="Email"
                 required
               />
             </div>
@@ -276,7 +322,7 @@ function App() {
                 value={authData.password}
                 onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
                 className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-100 transition-all font-medium focus:bg-white"
-                placeholder="••••••••"
+                placeholder="Password"
                 required
               />
             </div>
@@ -493,11 +539,11 @@ function App() {
                           <td className="px-10 py-6 text-slate-400 text-sm font-medium">
                             <div className="flex flex-col gap-1">
                               {user.banned ? (
-                                <span className="px-3 py-1 bg-black text-white rounded-full text-[10px] font-black uppercase text-center">Banned</span>
+                                <span className="px-3 py-1 bg-red-600 text-white rounded-full text-[10px] font-black uppercase text-center shadow-sm">Restricted</span>
                               ) : user.needs_approval ? (
                                 <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-[10px] font-black uppercase text-center">Pending</span>
                               ) : (
-                                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-black uppercase text-center">Approved</span>
+                                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-black uppercase text-center">Active</span>
                               )}
                             </div>
                           </td>
@@ -515,8 +561,8 @@ function App() {
                                   <Check size={16} /> Approve
                                 </button>
                               )}
-                              <button onClick={() => handleToggleBanUser(user)} className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-bold text-xs border ${user.banned ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200'}`} title={user.banned ? "Unban User" : "Ban User"}>
-                                <Shield size={16} /> {user.banned ? 'Unban' : 'Ban'}
+                              <button onClick={() => handleToggleBanUser(user)} className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-bold text-xs border ${user.banned ? 'bg-green-600 text-white border-green-700 hover:bg-green-700' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200'}`} title={user.banned ? "Lift All Restrictions" : "Restrict Student"}>
+                                <Shield size={16} /> {user.banned ? 'Lift' : 'Restrict'}
                               </button>
                               <button onClick={() => viewUserDetails(user)} className="p-2.5 text-blue-600 bg-blue-50 hover:bg-[#033867] hover:text-white rounded-xl transition-all border border-blue-100" title="View Progress">
                                 <Eye size={18} />
@@ -597,12 +643,19 @@ function App() {
                 <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Digital Mail Address</label>
                 <input type="email" value={userForm.email} onChange={(e) => setUserForm({ ...userForm, email: e.target.value })} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-100 font-bold focus:bg-white outline-none" placeholder="student@cca.edu.ph" required />
               </div>
-              {!isEditMode && (
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Temporary Password</label>
-                  <input type="password" value={userForm.password} onChange={(e) => setUserForm({ ...userForm, password: e.target.value })} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-100 font-bold focus:bg-white outline-none" placeholder="Strong password" required />
-                </div>
-              )}
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
+                  {isEditMode ? 'New Password (Leave blank to keep current)' : 'Temporary Password'}
+                </label>
+                <input
+                  type="password"
+                  value={userForm.password}
+                  onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-100 font-bold focus:bg-white outline-none"
+                  placeholder={isEditMode ? "Enter new password" : "Strong password"}
+                  required={!isEditMode}
+                />
+              </div>
               <button disabled={loading} className="w-full py-5 bg-[#033867] text-white rounded-2xl font-black text-lg hover:bg-blue-900 shadow-xl mt-6 active:scale-95 transition-all">
                 {loading ? 'Committing to Cloud...' : isEditMode ? 'Update Database' : 'Enroll Student'}
               </button>
@@ -675,6 +728,59 @@ function App() {
                 </div>
               </section>
             </div>
+          </div>
+        </div>
+      )}
+      {/* RESTRICTION MODAL */}
+      {isRestrictModalOpen && selectedUser && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[120] flex items-center justify-center p-6">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] p-10 shadow-2xl relative animate-in zoom-in duration-200">
+            <button onClick={() => setIsRestrictModalOpen(false)} className="absolute top-8 right-8 text-slate-400 hover:text-slate-900"><X size={24} /></button>
+
+            <div className="flex flex-col items-center text-center mb-8">
+              <div className="w-16 h-16 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mb-4">
+                <AlertTriangle size={32} />
+              </div>
+              <h2 className="text-2xl font-black text-[#033867]">Restrict Account</h2>
+              <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Student: {selectedUser.name}</p>
+            </div>
+
+            <form onSubmit={handleConfirmRestrict} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Restriction Reason</label>
+                <textarea
+                  value={restrictionForm.reason}
+                  onChange={(e) => setRestrictionForm({ ...restrictionForm, reason: e.target.value })}
+                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-100 font-bold focus:bg-white outline-none min-h-[100px] resize-none"
+                  placeholder="Why is this account being restricted?"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Duration (Hours)</label>
+                <div className="relative">
+                  <select
+                    value={restrictionForm.duration}
+                    onChange={(e) => setRestrictionForm({ ...restrictionForm, duration: e.target.value })}
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-100 font-bold focus:bg-white outline-none appearance-none cursor-pointer"
+                  >
+                    <option value="1">1 Hour</option>
+                    <option value="12">12 Hours</option>
+                    <option value="24">24 Hours (1 Day)</option>
+                    <option value="72">72 Hours (3 Days)</option>
+                    <option value="168">168 Hours (1 Week)</option>
+                    <option value="720">720 Hours (1 Month)</option>
+                    <option value="8760">Permanent (1 Year+)</option>
+                  </select>
+                  <Clock className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
+                </div>
+              </div>
+
+              <button disabled={loading} className="w-full py-5 bg-red-600 text-white rounded-2xl font-black text-lg hover:bg-red-700 shadow-xl shadow-red-900/10 mt-6 active:scale-95 transition-all flex items-center justify-center gap-2">
+                {loading ? 'Processing...' : 'Apply Restriction'}
+              </button>
+            </form>
           </div>
         </div>
       )}
